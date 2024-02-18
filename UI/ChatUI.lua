@@ -158,27 +158,8 @@ OnInit.module("ChatSystem/UI/ChatUI", function(require)
 
         frameInUse[iterator] = true
         messageDurations[iterator] = 0
-        --localUITimer:callDelayed(0.01, hideMessage, iterator)
-
-        BlzFrameSetVisible(frameMain, true)
-        BlzFrameSetVisible(frameMessagePanel, true)
-
-        BlzFrameSetAbsPoint(frameMain, FRAMEPOINT_CENTER, 0.5, 0.5)
-        BlzFrameSetAbsPoint(frameMessagePanel, FRAMEPOINT_CENTER, 0.5, 0.5)
-
-        BlzFrameSetVisible(frameMessage[iterator], true)
-        BlzFrameSetVisible(frameMessageType[iterator], true)
-        BlzFrameSetVisible(frameMessageTimeStamp[iterator], true)
-        BlzFrameSetVisible(frameMessageIcon[iterator], true)
-        BlzFrameSetVisible(frameMessageText[iterator], true)
-
-
-
-        BlzFrameSetAbsPoint(frameMessage[iterator], FRAMEPOINT_CENTER, 0.5, 0.5)
-        BlzFrameSetAbsPoint(frameMessageType[iterator], FRAMEPOINT_CENTER, 0.5, 0.5)
-        BlzFrameSetAbsPoint(frameMessageTimeStamp[iterator], FRAMEPOINT_CENTER, 0.5, 0.5)
-        BlzFrameSetAbsPoint(frameMessageIcon[iterator], FRAMEPOINT_CENTER, 0.5, 0.5)
-        BlzFrameSetAbsPoint(frameMessageText[iterator], FRAMEPOINT_CENTER, 0.5, 0.5)
+        localUITimer:callDelayed(0.01, hideMessage, iterator)
+        print(timestamp, from, message, messagetype) -- debug message, not actual chat ui
     end
 
     ---@param createContext integer
@@ -229,7 +210,7 @@ OnInit.module("ChatSystem/UI/ChatUI", function(require)
         return frame
     end
 
-    OnInit.map(function()
+    OnInit.final(function()
         BlzLoadTOCFile("UI\\ChatSystem.toc")                                   -- Try to load ChatSystem.toc, otherwise don't init system
         BlzFrameSetVisible(BlzGetOriginFrame(ORIGIN_FRAME_CHAT_MSG, 0), false) -- hides default chat
 
@@ -241,7 +222,7 @@ OnInit.module("ChatSystem/UI/ChatUI", function(require)
 
         BlzFrameSetAbsPoint(frameMain, FRAMEPOINT_BOTTOM, 0.4, 0.)
         BlzFrameSetPoint(frameMessagePanel, CHAT_REFPOINT, frameMain, CHAT_REFPOINT, CHAT_X, CHAT_Y)
-        print("init done")
+        print("Successfully loaded Chat System v1")
     end)
 end)
 if Debug then Debug.endFile() end
