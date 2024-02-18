@@ -1,7 +1,7 @@
-if Debug then Debug.beginFile "ChatSystem.ChatService" end
-OnInit.module("ChatSystem.ChatService", function(require)
-    require "ChatSystem.Data.ChatProfiles"
-    require "ChatSystem.Data.ChatGroups"
+if Debug then Debug.beginFile "ChatSystem/ChatService" end
+OnInit.module("ChatSystem/ChatService", function(require)
+    require "ChatSystem/Data/ChatProfiles"
+    require "ChatSystem/Data/ChatGroups"
     require "TimerQueue"
     require "SetUtils"
     require "StringInterpolation"
@@ -12,6 +12,7 @@ OnInit.module("ChatSystem.ChatService", function(require)
 
     local privateMessageFromPrefixPattern ---@type string
     local privateMessageToPrefixPattern ---@type string
+    local stopwatch = Stopwatch.create(true)
 
     ---@class ChatService
     ---@field listeners ChatServiceListener[]
@@ -30,11 +31,11 @@ OnInit.module("ChatSystem.ChatService", function(require)
         end
     end
 
-    ---@param time integer
+    ---@param time number
     ---@return string timeFormatted [mm:ss]
     local function convertTime(time)
-        local minutes = time / 60 ---@type integer|string
-        local seconds = I2S(time - minutes * 60)
+        local minutes = math.modf(time / 60) ---@type integer|string
+        local seconds = I2S(math.modf(time - minutes * 60))
         minutes = I2S(minutes --[[@as integer]])
 
         local stringBuilder = TableRecycler.create()
@@ -89,13 +90,13 @@ OnInit.module("ChatSystem.ChatService", function(require)
     ---@param message string
     ---@param group ChatGroup
     function ChatService.sendMessageToChatGroup(from, message, group)
-        tempTime = convertTime(Stopwatch:getElapsed())
+        tempTime = convertTime(stopwatch:getElapsed())
         tempMessage = message
         tempSender = type(from) ~= 'table' and ChatProfiles:get(from --[[@as player|string]]) or from --[[@as ChatProfile]]
         tempGroup = group
         tempGroup:forEachMember(sendMessageToMember)
-        if not tempGroup.members[from] then -- don't duplicate self-message if sender is in the group
-            showMessageForPlayer(tempTime, tempSender, tempGroup.name, tempMessage, from.player)
+        if not tempGroup.members[tempSender] then -- don't duplicate self-message if sender is in the group
+            showMessageForPlayer(tempTime, tempSender, tempGroup.name, tempMessage, tempSender.player)
         end
     end
 
@@ -105,5 +106,7 @@ OnInit.module("ChatSystem.ChatService", function(require)
         privateMessageFromPrefixPattern = fromPattern
         privateMessageToPrefixPattern = toPattern
     end
+
+    return ChatService
 end)
 if Debug then Debug.endFile() end

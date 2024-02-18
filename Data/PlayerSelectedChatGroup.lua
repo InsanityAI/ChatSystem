@@ -1,7 +1,7 @@
-if Debug then Debug.beginFile "ChatSystem.Data.PlayerSelectedChatGroup" end
-OnInit.module("ChatSystem.Data.PlayerSelectedChatGroup", function(require)
-    require "ChatSystem.Data.ChatProfiles"
-    require "ChatSystem.Data.ChatGroups"
+if Debug then Debug.beginFile "ChatSystem/Data/PlayerSelectedChatGroup" end
+OnInit.module("ChatSystem/Data/PlayerSelectedChatGroup", function(require)
+    require "ChatSystem/Data/ChatProfiles"
+    require "ChatSystem/Data/ChatGroups"
 
     local playerSelectedGroups = {} ---@type table<player, ChatGroup>
     local playerSelectedRecepient = {} ---@type table<player, ChatProfile>

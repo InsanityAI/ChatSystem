@@ -1,6 +1,6 @@
-if Debug then Debug.beginFile "ChatSystem.UI.ChatUI" end
-OnInit.module("ChatSystem.UI.ChatUI", function(require)
-    require "ChatSystem.ChatService"
+if Debug then Debug.beginFile "ChatSystem/UI/ChatUI" end
+OnInit.module("ChatSystem/UI/ChatUI", function(require)
+    require "ChatSystem/ChatService"
     require "TimerQueue"
 
     local localUITimer = TimerQueue.create()
@@ -100,7 +100,7 @@ OnInit.module("ChatSystem.UI.ChatUI", function(require)
     ---@param message string
     ---@param messagetype string
     function ChatUI.newMessage(timestamp, from, message, messagetype)
-        while not frameInUse[iterator] do
+        while frameInUse[iterator] do
             if iterator > MAX_MESSAGES then
                 iterator = 1
             else
@@ -108,11 +108,11 @@ OnInit.module("ChatSystem.UI.ChatUI", function(require)
             end
         end
 
-        --call BJDebugMsg("Expected Time: " + I2S(time))
-        --call BJDebugMsg("Expected Type: " + messagetype)
-        --call BJDebugMsg("Expected Icon: " + messageIcon)
-        --call BJDebugMsg("Expected Content: " + message)
-        --call BJDebugMsg("Expected Receivers: " + I2S(receivers))
+        --call BJDebugMsg("Expected Time: " .. I2S(time))
+        --call BJDebugMsg("Expected Type: " .. messagetype)
+        --call BJDebugMsg("Expected Icon: " .. messageIcon)
+        --call BJDebugMsg("Expected Content: " .. message)
+        --call BJDebugMsg("Expected Receivers: " .. I2S(receivers))
 
         -- no reason to do these async, since only frameMessage visiblity matters
         BlzFrameSetText(frameMessageType[iterator], messagetype)
@@ -158,7 +158,27 @@ OnInit.module("ChatSystem.UI.ChatUI", function(require)
 
         frameInUse[iterator] = true
         messageDurations[iterator] = 0
-        localUITimer:callDelayed(0.01, hideMessage, iterator)
+        --localUITimer:callDelayed(0.01, hideMessage, iterator)
+
+        BlzFrameSetVisible(frameMain, true)
+        BlzFrameSetVisible(frameMessagePanel, true)
+
+        BlzFrameSetAbsPoint(frameMain, FRAMEPOINT_CENTER, 0.5, 0.5)
+        BlzFrameSetAbsPoint(frameMessagePanel, FRAMEPOINT_CENTER, 0.5, 0.5)
+
+        BlzFrameSetVisible(frameMessage[iterator], true)
+        BlzFrameSetVisible(frameMessageType[iterator], true)
+        BlzFrameSetVisible(frameMessageTimeStamp[iterator], true)
+        BlzFrameSetVisible(frameMessageIcon[iterator], true)
+        BlzFrameSetVisible(frameMessageText[iterator], true)
+
+
+
+        BlzFrameSetAbsPoint(frameMessage[iterator], FRAMEPOINT_CENTER, 0.5, 0.5)
+        BlzFrameSetAbsPoint(frameMessageType[iterator], FRAMEPOINT_CENTER, 0.5, 0.5)
+        BlzFrameSetAbsPoint(frameMessageTimeStamp[iterator], FRAMEPOINT_CENTER, 0.5, 0.5)
+        BlzFrameSetAbsPoint(frameMessageIcon[iterator], FRAMEPOINT_CENTER, 0.5, 0.5)
+        BlzFrameSetAbsPoint(frameMessageText[iterator], FRAMEPOINT_CENTER, 0.5, 0.5)
     end
 
     ---@param createContext integer
@@ -219,9 +239,9 @@ OnInit.module("ChatSystem.UI.ChatUI", function(require)
             generateMessageFrame(i)
         end
 
-
         BlzFrameSetAbsPoint(frameMain, FRAMEPOINT_BOTTOM, 0.4, 0.)
         BlzFrameSetPoint(frameMessagePanel, CHAT_REFPOINT, frameMain, CHAT_REFPOINT, CHAT_X, CHAT_Y)
+        print("init done")
     end)
 end)
 if Debug then Debug.endFile() end

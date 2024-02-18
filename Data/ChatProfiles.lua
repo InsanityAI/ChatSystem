@@ -1,5 +1,6 @@
-if Debug then Debug.beginFile "ChatSystem.Data.DataProfiles" end
-OnInit.module("ChatSystem.Data.DataProfiles", function (require)
+if Debug then Debug.beginFile "ChatSystem/Data/ChatProfiles" end
+OnInit.module("ChatSystem/Data/ChatProfiles", function (require)
+    require "Cache"
     ---@class ChatProfile
     ---@field player player?
     ---@field name string

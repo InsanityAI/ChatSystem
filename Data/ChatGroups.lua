@@ -1,6 +1,7 @@
-if Debug then Debug.beginFile "ChatSystem.Data.ChatGroups" end
-OnInit.module("ChatSystem.Data.ChatGroups", function (require)
+if Debug then Debug.beginFile "ChatSystem/Data/ChatGroups" end
+OnInit.module("ChatSystem/Data/ChatGroups", function (require)
     require "SyncedTable"
+    require "Cache"
 
     ---@class ChatGroup
     ---@field members table<ChatProfile, true>
@@ -34,5 +35,7 @@ OnInit.module("ChatSystem.Data.ChatGroups", function (require)
             handler(member)
         end
     end
+
+    return ChatGroup
 end)
 if Debug then Debug.endFile() end

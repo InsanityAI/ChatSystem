@@ -1,11 +1,11 @@
 if Debug then Debug.beginFile "ChatSystem" end
 OnInit.main("ChatSystem", function (require)
-    require "ChatSystem.Data.ChatProfiles"
-    require "ChatSystem.Data.ChatGroups"
-    require "ChatSystem.Data.PlayerSelectedChatGroup"
-    require "ChatSystem.ChatService"
-    require "ChatSystem.UI.ChatUI"
-    require "ChatSystem.UI.ChatHistoryUI"
+    require "ChatSystem/Data/ChatProfiles"
+    require "ChatSystem/Data/ChatGroups"
+    require "ChatSystem/Data/PlayerSelectedChatGroup"
+    require "ChatSystem/ChatService"
+    require "ChatSystem/UI/ChatUI"
+    require "ChatSystem/UI/ChatHistoryUI"
 
     -- Hook up ChatUI to ChatService to display oncoming messages
     table.insert(ChatService.listeners, ChatUI)
@@ -37,8 +37,7 @@ OnInit.main("ChatSystem", function (require)
         require "SetUtils"
         for player in SetUtils.getPlayersAll():elements() do
             PlayerSelectedChatGroup.playerSelectedChatGroup(player, groupAll)
-            groupAll:add(ChatProfiles:get(player))
-            -- make all players have "All" chat selected
+            groupAll:add(ChatProfiles:get(player)) -- make all players have "All" chat selected
         end
     end)
 end)

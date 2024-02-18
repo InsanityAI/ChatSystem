@@ -1,5 +1,5 @@
-if Debug then Debug.beginFile "ChatSystem.UI.ChatHistoryUI" end
-OnInit.module("ChatSystem.UI.ChatHistoryUI", function(require)
+if Debug then Debug.beginFile "ChatSystem/UI/ChatHistoryUI" end
+OnInit.module("ChatSystem/UI/ChatHistoryUI", function(require)
     local frameChatHistory = nil ---@type framehandle
 
     ---@return framehandle?
