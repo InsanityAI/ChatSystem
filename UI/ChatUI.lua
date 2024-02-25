@@ -1,11 +1,8 @@
 if Debug then Debug.beginFile "ChatSystem/UI/ChatUI" end
-OnInit.module("ChatSystem/UI/ChatUI", function(require)
-    require "ChatSystem/ChatService"
+OnInit.global("ChatSystem/UI/ChatUI", function(require)
     require "TimerQueue"
 
     local localUITimer = TimerQueue.create()
-
-    local MAX_MESSAGES = 1000
 
     -- Frame position (scales with resolution)
     local CHAT_REFPOINT = FRAMEPOINT_BOTTOMLEFT -- from which point of screen the X and Y calculate
@@ -16,33 +13,34 @@ OnInit.module("ChatSystem/UI/ChatUI", function(require)
 
     local MESSAGE_DURATION = 500            -- Message disappears after X ms
 
-    local frameMain = nil ---@type framehandle
-    local frameMessagePanel = nil ---@type framehandle
+    local frameMain ---@type framehandle
+    local frameMessagePanel ---@type framehandle
     local frameMessage = {} ---@type framehandle[]
     local frameMessageType = {} ---@type framehandle[]
     local frameMessageTimeStamp = {} ---@type framehandle[]
     local frameMessageIcon = {} ---@type framehandle[]
     local frameMessageText = {} ---@type framehandle[]
-
     local frameMessageTimeStampContainer = {} ---@type framehandle[]
     local frameMessageIconContainer = {} ---@type framehandle[]
     local frameMessageTextContainer = {} ---@type framehandle[]
 
+    local iterator = 1
+
     local startY = {} ---@type number[]
     local currentY = {} ---@type number[]
     local targetY = {} ---@type number[]
-    local asyncVisibility = {} ---@type boolean[]
-    local timeSinceStart = {} ---@type number[]
+    local timeSinceStart = {} ---@type integer[]
     local frameInUse = {} ---@type boolean[]
-    local frameAlpha = {} ---@type number[]
-    local previousFrame = {} ---@type number[]
+    local frameAlpha = {} ---@type integer[]
+    local previousFrame = {} ---@type integer[]
     local messageDurations = {} ---@type number[]
+    local tempPrev = 0
 
     ---@class ChatUI: ChatServiceListener
     ---@field frames framehandle[]
     ChatUI = {}
 
-    local iterator = 1
+    local MAX_MESSAGES = 1000
 
 
     ---@param t number
@@ -52,54 +50,61 @@ OnInit.module("ChatSystem/UI/ChatUI", function(require)
     end
 
     ---@param current integer
-    local function hideMessage(current)
-        local prev = previousFrame[iterator] -- async
-        local duration = messageDurations[iterator] + 1
+    local function stopRendering(current)
+        local stopRunning = messageDurations[current] > MESSAGE_DURATION + 100
 
-        messageDurations[iterator] = duration
-        if asyncVisibility[current] then -- following stuff is all async, and only happens if player was meant to see the message
-            if (prev == 0 or not frameInUse[prev] or currentY[prev] >= FONT_SIZE + 0.005) and frameAlpha[current] < 0 then
-                BlzFrameSetPoint(frameMessage[current], FRAMEPOINT_BOTTOMLEFT, frameMessagePanel, FRAMEPOINT_BOTTOMLEFT,
-                    0., 0.)
-                frameAlpha[current] = 0
-            end
-            if frameAlpha[current] >= 0 and frameAlpha[current] < 255 and duration < MESSAGE_DURATION then
-                frameAlpha[current] = frameAlpha[current] + 3
-                BlzFrameSetAlpha(frameMessage[current], frameAlpha[current])
-            elseif duration > MESSAGE_DURATION and frameAlpha[current] > 0 then
-                frameAlpha[current] = frameAlpha[current] - 3
-                BlzFrameSetAlpha(frameMessage[current], frameAlpha[current])
-            end
-            if targetY[current] > currentY[current] and frameAlpha[current] >= 0 then
-                timeSinceStart[current] = timeSinceStart[current] + 1
-                if timeSinceStart[current] < 20 then
-                    currentY[current] = startY[current] +
-                        (targetY[current] - startY[current]) * easeInOutSine(timeSinceStart[current] / 20.)
-                else
-                    currentY[current] = targetY[current]
-                end
-                BlzFrameSetPoint(frameMessage[current], FRAMEPOINT_BOTTOMLEFT, frameMessagePanel, FRAMEPOINT_BOTTOMLEFT,
-                    0., currentY[current])
-            end
-        end
-
-        if duration > MESSAGE_DURATION + 100 then
+        if stopRunning then
             frameInUse[current] = false
-            asyncVisibility[current] = false
             BlzFrameSetVisible(frameMessage[current], false)
             currentY[current] = 0.
             frameAlpha[current] = -1
             timeSinceStart[current] = 0
         end
+
+        return stopRunning
     end
 
-    local tempPrev = nil ---@type integer
+    ---@param current integer
+    local function hideMessage(current)
+        local prev = previousFrame[current] -- async
+        local duration = messageDurations[current] + 1
+
+        messageDurations[current] = duration
+
+        if (prev == 0 or not frameInUse[prev] or currentY[prev] >= FONT_SIZE + 0.005) and frameAlpha[current] < 0 then
+            BlzFrameSetPoint(frameMessage[current], FRAMEPOINT_BOTTOMLEFT, frameMessagePanel, FRAMEPOINT_BOTTOMLEFT, 0.,
+                0.)
+            frameAlpha[current] = 0
+        end
+        if frameAlpha[current] >= 0 and frameAlpha[current] < 255 and duration < MESSAGE_DURATION then
+            frameAlpha[current] = frameAlpha[current] + 3
+            BlzFrameSetAlpha(frameMessage[current], frameAlpha[current])
+        elseif duration > MESSAGE_DURATION and frameAlpha[current] > 0 then
+            frameAlpha[current] = frameAlpha[current] - 3
+            BlzFrameSetAlpha(frameMessage[current], frameAlpha[current])
+        end
+        if targetY[current] > currentY[current] and frameAlpha[current] >= 0 then
+            timeSinceStart[current] = timeSinceStart[current] + 1
+            if timeSinceStart[current] < 20 then
+                currentY[current] = startY[current] +
+                    (targetY[current] - startY[current]) * easeInOutSine(timeSinceStart[current] / 20.)
+            else
+                currentY[current] = targetY[current]
+            end
+            BlzFrameSetPoint(frameMessage[current], FRAMEPOINT_BOTTOMLEFT, frameMessagePanel, FRAMEPOINT_BOTTOMLEFT, 0.,
+                currentY[current])
+        end
+    end
 
     ---@param timestamp string
     ---@param from ChatProfile
     ---@param message string
     ---@param messagetype string
     function ChatUI.newMessage(timestamp, from, message, messagetype)
+        local current = 1
+        local prev = 0
+
+
         while frameInUse[iterator] do
             if iterator > MAX_MESSAGES then
                 iterator = 1
@@ -108,11 +113,11 @@ OnInit.module("ChatSystem/UI/ChatUI", function(require)
             end
         end
 
-        --call BJDebugMsg("Expected Time: " .. I2S(time))
-        --call BJDebugMsg("Expected Type: " .. messagetype)
-        --call BJDebugMsg("Expected Icon: " .. messageIcon)
-        --call BJDebugMsg("Expected Content: " .. message)
-        --call BJDebugMsg("Expected Receivers: " .. I2S(receivers))
+        -- BJDebugMsg("Expected Time: " .. I2S(time))
+        -- BJDebugMsg("Expected Type: " .. messagetype)
+        -- BJDebugMsg("Expected Icon: " .. messageIcon)
+        -- BJDebugMsg("Expected Content: " .. message)
+        -- BJDebugMsg("Expected Receivers: " .. I2S(receivers))
 
         -- no reason to do these async, since only frameMessage visiblity matters
         BlzFrameSetText(frameMessageType[iterator], messagetype)
@@ -135,16 +140,15 @@ OnInit.module("ChatSystem/UI/ChatUI", function(require)
         end
 
         BlzFrameSetVisible(frameMessage[iterator], true)
-        asyncVisibility[iterator] = true   -- async
         previousFrame[iterator] = tempPrev -- async
-        local prev = tempPrev                    -- local async
+        prev = tempPrev                    -- local async
         tempPrev = iterator                -- async
-        local current = iterator                 -- local async
+        current = iterator                 -- local async
         while prev ~= 0 do
             if prev == current then
                 previousFrame[current] = 0                        -- async
                 prev = 0                                          -- local async
-            elseif frameInUse[prev] and asyncVisibility[prev] then
+            elseif frameInUse[prev] then
                 targetY[prev] = targetY[prev] + FONT_SIZE + 0.005 -- async
                 startY[prev] = currentY[prev]                     -- async
                 timeSinceStart[prev] = 0                          -- async
@@ -158,8 +162,7 @@ OnInit.module("ChatSystem/UI/ChatUI", function(require)
 
         frameInUse[iterator] = true
         messageDurations[iterator] = 0
-        localUITimer:callDelayed(0.01, hideMessage, iterator)
-        print(timestamp, from, message, messagetype) -- debug message, not actual chat ui
+        localUITimer:callPeriodically(0.01, stopRendering, hideMessage, iterator)
     end
 
     ---@param createContext integer
@@ -181,6 +184,7 @@ OnInit.module("ChatSystem/UI/ChatUI", function(require)
         frameMessageIconContainer[createContext] = BlzGetFrameByName("Message Icon Container", createContext)
         BlzFrameSetSize(frameMessageIconContainer[createContext], FONT_SIZE + 0.005, FONT_SIZE + 0.005)
         frameMessageIcon[createContext] = BlzGetFrameByName("Message Icon", createContext)
+
         frameMessageTextContainer[createContext] = BlzGetFrameByName("Message Text Container", createContext)
         BlzFrameSetSize(frameMessageTextContainer[createContext], 0.675, FONT_SIZE + 0.005)
         frameMessageText[createContext] = BlzGetFrameByName("Message Text", createContext)
@@ -196,33 +200,38 @@ OnInit.module("ChatSystem/UI/ChatUI", function(require)
         targetY[createContext] = 0.
         frameAlpha[createContext] = -1
         timeSinceStart[createContext] = 0
-        asyncVisibility[createContext] = false
         previousFrame[createContext] = 0
     end
 
-    ---@return framehandle?
+    ---@param name string
+    ---@param pos integer
+    ---@return framehandle
     local function safe_get_frame(name, pos)
         local frame = BlzGetFrameByName(name, pos)
         if frame == nil then
             Location(0, 0) --Intentionally leak a handle because someone does not have this frame
             --This should help prevent desyncs and replay errors
         end
-        return frame
+        return frame --[[@as framehandle]]
     end
 
-    OnInit.final(function()
-        BlzLoadTOCFile("UI\\ChatSystem.toc")                                   -- Try to load ChatSystem.toc, otherwise don't init system
+    OnInit.final(function(require)
+        require "ChatSystem/Data/ChatProfiles"
+        BlzLoadTOCFile("UI\\ChatSystem.toc")
         BlzFrameSetVisible(BlzGetOriginFrame(ORIGIN_FRAME_CHAT_MSG, 0), false) -- hides default chat
 
         frameMain = BlzCreateSimpleFrame("Main", BlzGetOriginFrame(ORIGIN_FRAME_GAME_UI, 0), 0)
-        frameMessagePanel = safe_get_frame("Message Panel", 0) --[[@as framehandle]]
+        frameMessagePanel = safe_get_frame("Message Panel", 0)
+
         for i = 1, MAX_MESSAGES do
             generateMessageFrame(i)
         end
 
         BlzFrameSetAbsPoint(frameMain, FRAMEPOINT_BOTTOM, 0.4, 0.)
         BlzFrameSetPoint(frameMessagePanel, CHAT_REFPOINT, frameMain, CHAT_REFPOINT, CHAT_X, CHAT_Y)
-        print("Successfully loaded Chat System v1")
+        BlzFrameSetSize(frameMain, 0.6 * BlzGetLocalClientWidth() / BlzGetLocalClientHeight(), 0.6)
+
+        ChatUI.newMessage("[00.00]", ChatProfiles:get("System"), "Successfully loaded Chat System v1", "SYSTEM")
     end)
 end)
 if Debug then Debug.endFile() end

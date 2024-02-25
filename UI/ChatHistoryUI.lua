@@ -2,23 +2,20 @@ if Debug then Debug.beginFile "ChatSystem/UI/ChatHistoryUI" end
 OnInit.module("ChatSystem/UI/ChatHistoryUI", function(require)
     local frameChatHistory = nil ---@type framehandle
 
-    ---@return framehandle?
+    ---@return framehandle
     local function safe_get_frame(name, pos)
         local frame = BlzGetFrameByName(name, pos)
         if frame == nil then
             Location(0, 0) --Intentionally leak a handle because someone does not have this frame
             --This should help prevent desyncs and replay errors
         end
-        return frame
+        return frame --[[@as framehandle]]
     end
 
     OnInit.map(function()
         safe_get_frame("ChatHistoryDisplay", 0)
         frameChatHistory = safe_get_frame("ChatHistoryDisplay", 0) --[[@as framehandle]]
-        if frameChatHistory == nil then
-            print("Singleplayer detected, normal chat messages are disabled. (Commands will remain working)")
-        else
-            print("Multiplayer detected, normal chat messages and commands will work as intended")
+        if frameChatHistory then
             BlzFrameSetText(frameChatHistory, "")
             -- hide observer chat radio button cause it cause desyncs
             BlzFrameSetVisible(safe_get_frame("ChatObserversRadioButton", 0), false)

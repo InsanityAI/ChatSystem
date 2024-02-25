@@ -37,6 +37,7 @@ OnInit.main("ChatSystem", function (require)
         require "SetUtils"
         for player in SetUtils.getPlayersAll():elements() do
             PlayerSelectedChatGroup.playerSelectedChatGroup(player, groupAll)
+            ChatProfiles:get(player).icon = "ReplaceableTextures\\CommandButtons\\BTNPriest.blp"
             groupAll:add(ChatProfiles:get(player)) -- make all players have "All" chat selected
         end
     end)
