@@ -230,8 +230,6 @@ OnInit.global("ChatSystem/UI/ChatUI", function(require)
         BlzFrameSetAbsPoint(frameMain, FRAMEPOINT_BOTTOM, 0.4, 0.)
         BlzFrameSetPoint(frameMessagePanel, CHAT_REFPOINT, frameMain, CHAT_REFPOINT, CHAT_X, CHAT_Y)
         BlzFrameSetSize(frameMain, 0.6 * BlzGetLocalClientWidth() / BlzGetLocalClientHeight(), 0.6)
-
-        ChatUI.newMessage("[00.00]", ChatProfiles:get("System"), "Successfully loaded Chat System v1", "SYSTEM")
     end)
 end)
 if Debug then Debug.endFile() end
