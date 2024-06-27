@@ -25,8 +25,14 @@ OnInit.module("ChatSystem/Data/ChatGroups", function (require)
     end
 
     ---@param profile ChatProfile
-    function ChatGroup:removeProfile(profile)
+    function ChatGroup:remove(profile)
         self.members[profile] = nil
+    end
+
+    ---@param profile ChatProfile
+    ---@return boolean
+    function ChatGroup:contains(profile)
+        return self.members[profile] ~= nil
     end
 
     ---@param handler fun(member: ChatProfile)

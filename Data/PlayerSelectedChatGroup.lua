@@ -11,7 +11,7 @@ OnInit.module("ChatSystem/Data/PlayerSelectedChatGroup", function(require)
 
     ---@param player player
     ---@param chatGroup ChatGroup|string
-    function PlayerSelectedChatGroup.playerSelectedChatGroup(player, chatGroup)
+    function PlayerSelectedChatGroup.setPlayerChatGroup(player, chatGroup)
         assert(player ~= nil, "player cannot be nil!")
         assert(chatGroup ~= nil, "chatGroup cannot be nil!")
         playerSelectedGroups[player] = type(chatGroup) == 'string' and ChatGroups:get(chatGroup) or chatGroup --[[@as ChatGroup]]
@@ -20,7 +20,7 @@ OnInit.module("ChatSystem/Data/PlayerSelectedChatGroup", function(require)
 
     ---@param player player
     ---@param recepient ChatProfile|player|string
-    function PlayerSelectedChatGroup.playerSelectedRecepient(player, recepient)
+    function PlayerSelectedChatGroup.setPlayerRecepient(player, recepient)
         assert(player ~= nil, "player cannot be nil!")
         assert(recepient ~= nil, "recepient cannot be nil!")
         playerSelectedGroups[player] = nil

@@ -36,7 +36,7 @@ OnInit.global("ChatSystem/UI/ChatUI", function(require)
     local messageDurations = {} ---@type number[]
     local tempPrev = 0
 
-    ---@class ChatUI: ChatServiceListener
+    ---@class ChatUI: ChatServiceUIListener
     ---@field frames framehandle[]
     ChatUI = {}
 

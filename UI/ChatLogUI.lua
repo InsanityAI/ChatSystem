@@ -1,5 +1,24 @@
-if Debug then Debug.beginFile "ChatSystem/UI/ChatHistoryUI" end
-OnInit.module("ChatSystem/UI/ChatHistoryUI", function(require)
+if Debug then Debug.beginFile "ChatSystem/UI/ChatLogUI" end
+OnInit.module("ChatSystem/UI/ChatLogUI", function(require)
+
+    ---@class ChatLogUI: ChatServiceUIListener
+    ChatLogUI = {}
+
+    -- Note that this is called from a GetLocalPlayer() block, so be aware of what you're doing.
+    ---@param timestamp string formatted time in represent [minutes: seconds]
+    ---@param from ChatProfile sender of message
+    ---@param message string message text
+    ---@param messageType string formatted text that represent on which channel/group it was sent, or to which player if private chat.
+    function ChatLogUI.newMessage(timestamp, from, message, messageType)
+        -- to be implemented
+    end
+
+    -- In case someone gets around to implementing chat channel selection, make sure to use PlayerSelectedChatGroup
+    -- That's where ChatSystem pulls to which channel a message should be sent
+    -- care with Allies chat channel, as by default it's called "team1", "team2", ... for each allied group, so it's
+    -- required to resolve that in here: perhaps with ChatGroups:contains(profile)?
+
+    -- old code below, can be yeeted for all I care - Insanity_AI
     local frameChatHistory = nil ---@type framehandle
 
     ---@return framehandle

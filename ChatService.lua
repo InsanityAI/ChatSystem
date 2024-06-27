@@ -3,20 +3,28 @@ OnInit.module("ChatSystem/ChatService", function(require)
     require "ChatSystem/Data/ChatProfiles"
     require "ChatSystem/Data/ChatGroups"
     require "TimerQueue"
+    require "SyncedTable"
     require "SetUtils"
     require "StringInterpolation"
     require "TableRecycler"
 
-    ---@class ChatServiceListener
+    ---@class ChatServiceUIListener
     ---@field newMessage fun(timestamp: string, from: ChatProfile, message: string, messagetype: string)
+
+    ---@class ChatServiceListener
+    ---@field newMessage fun(time: integer, from: ChatProfile, to: ChatProfile|ChatGroup, message: string)
 
     local privateMessageFromPrefixPattern ---@type string
     local privateMessageToPrefixPattern ---@type string
     local stopwatch = Stopwatch.create(true)
 
     ---@class ChatService
-    ---@field listeners ChatServiceListener[]
-    ChatService = { listeners = {}}
+    ---@field package uiListeners table<ChatServiceUIListener, boolean>
+    ---@field package listeners table<ChatServiceListener, boolean>
+    ChatService = {
+        uiListeners = SyncedTable.create(),
+        listeners = SyncedTable.create()
+    }
 
     ---@param timeFormatted string
     ---@param from ChatProfile
@@ -25,9 +33,19 @@ OnInit.module("ChatSystem/ChatService", function(require)
     ---@param receiver player
     local function showMessageForPlayer(timeFormatted, from, messageType, message, receiver)
         if receiver == GetLocalPlayer() then
-            for _, chatListener in ipairs(ChatService.listeners) do
+            for chatListener, _ in pairs(ChatService.uiListeners) do
                 chatListener.newMessage(timeFormatted, from, message, messageType)
             end
+        end
+    end
+
+    ---@param time integer
+    ---@param from ChatProfile
+    ---@param receiver ChatProfile|ChatGroup
+    ---@param message string
+    local function notifyListeners(time, from, receiver, message)
+        for chatListener, _ in pairs(ChatService.listeners) do
+            chatListener.newMessage(time, from, receiver, message)
         end
     end
 
@@ -58,8 +76,9 @@ OnInit.module("ChatSystem/ChatService", function(require)
         return result
     end
 
-    -- HELPER METHODS
+    -- temp variables
 
+    local time = nil ---@type number
     local tempTime = nil ---@type string
     local tempMessage = nil ---@type string
     local tempSender = nil ---@type ChatProfile
@@ -74,15 +93,21 @@ OnInit.module("ChatSystem/ChatService", function(require)
     ---@param message string
     ---@param recepient ChatProfile|player|string
     function ChatService.sendMessageToPlayer(from, message, recepient)
-        local time = convertTime(Stopwatch:getElapsed())
+        time = stopwatch:getElapsed()
         from = type(from) ~= 'table' and ChatProfiles:get(from --[[@as player]]) or from --[[@as ChatProfile]]
-        recepient = type(recepient) ~= 'table' and ChatProfiles:get(recepient --[[@as player]]) or recepient --[[@as ChatProfile]]
+        recepient = type(recepient) ~= 'table' and ChatProfiles:get(recepient --[[@as player]]) or
+            recepient --[[@as ChatProfile]]
+        notifyListeners(time, from, recepient, message)
         local interpParams = TableRecycler.create()
         interpParams.fromPlayer = from.name
         interpParams.toPlayer = recepient.name
-        showMessageForPlayer(time, from, interp(privateMessageFromPrefixPattern, interpParams), message, recepient.player)
+
+        tempTime = convertTime(time)
+        showMessageForPlayer(tempTime, from, interp(privateMessageFromPrefixPattern, interpParams), message,
+            recepient.player)
         if recepient.player ~= from.player then -- avoid sending itself messages
-            showMessageForPlayer(time, from, interp(privateMessageToPrefixPattern, interpParams), message, from.player)
+            showMessageForPlayer(tempTime, from, interp(privateMessageToPrefixPattern, interpParams), message,
+                from.player)
         end
     end
 
@@ -90,10 +115,13 @@ OnInit.module("ChatSystem/ChatService", function(require)
     ---@param message string
     ---@param group ChatGroup
     function ChatService.sendMessageToChatGroup(from, message, group)
-        tempTime = convertTime(stopwatch:getElapsed())
+        time = stopwatch:getElapsed()
+        tempTime = convertTime(time)
         tempMessage = message
-        tempSender = type(from) ~= 'table' and ChatProfiles:get(from --[[@as player|string]]) or from --[[@as ChatProfile]]
+        tempSender = type(from) ~= 'table' and ChatProfiles:get(from --[[@as player|string]]) or
+            from --[[@as ChatProfile]]
         tempGroup = group
+        notifyListeners(time, tempSender, tempGroup, message)
         tempGroup:forEachMember(sendMessageToMember)
         if not tempGroup.members[tempSender] then -- don't duplicate self-message if sender is in the group
             showMessageForPlayer(tempTime, tempSender, tempGroup.name, tempMessage, tempSender.player)
@@ -105,6 +133,28 @@ OnInit.module("ChatSystem/ChatService", function(require)
     function ChatService.setPrivateMessagePrefixPatterns(fromPattern, toPattern)
         privateMessageFromPrefixPattern = fromPattern
         privateMessageToPrefixPattern = toPattern
+    end
+
+    --- Register UI listener that will show only relevant messages to LocalPlayer
+    ---@param listener ChatServiceUIListener
+    function ChatService.registerUIListener(listener)
+        ChatService.uiListeners[listener] = true
+    end
+
+    ---@param listener ChatServiceUIListener
+    function ChatService.unregisterUIListener(listener)
+        ChatService.uiListeners[listener] = nil
+    end
+
+    -- Register listener to listen to all message traffic
+    ---@param listener ChatServiceListener
+    function ChatService.registerListener(listener)
+        ChatService.listeners[listener] = true
+    end
+
+    ---@param listener ChatServiceListener
+    function ChatService.unregisterListener(listener)
+        ChatService.listeners[listener] = nil
     end
 
     return ChatService
