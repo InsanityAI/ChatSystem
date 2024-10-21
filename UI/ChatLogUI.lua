@@ -1,15 +1,22 @@
 if Debug then Debug.beginFile "ChatSystem/UI/ChatLogUI" end
 OnInit.module("ChatSystem/UI/ChatLogUI", function(require)
-
     ---@class ChatLogUI: ChatServiceUIListener
     ChatLogUI = {}
+
+    ---@param timestamp string
+    ---@param contact ChatProfile
+    ---@param message string
+    ---@param isForSender boolean
+    function ChatLogUI.newPrivateMessage(timestamp, contact, message, isForSender)
+        -- to be implemented
+    end
 
     -- Note that this is called from a GetLocalPlayer() block, so be aware of what you're doing.
     ---@param timestamp string formatted time in represent [minutes: seconds]
     ---@param from ChatProfile sender of message
     ---@param message string message text
-    ---@param messageType string formatted text that represent on which channel/group it was sent, or to which player if private chat.
-    function ChatLogUI.newMessage(timestamp, from, message, messageType)
+    ---@param groupName string formatted text that represent on which channel/group it was sent
+    function ChatLogUI.newMessage(timestamp, from, message, groupName)
         -- to be implemented
     end
 

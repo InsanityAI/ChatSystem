@@ -4,15 +4,18 @@ OnInit.module("ChatSystem/Data/ChatGroups", function (require)
     require "Cache"
 
     ---@class ChatGroup
+    ---@field owner ChatProfile
     ---@field members table<ChatProfile, true>
     ---@field name string
     ChatGroup = {}
     ChatGroup.__index = ChatGroup
+    ChatGroup.__name = "ChatGroup"
 
     ---@class ChatGroups: Cache
     ---@field get fun(self: ChatGroups, name: string): ChatGroup
+    ---@field exists fun(self: ChatGroups, name: string): boolean
     ---@field invalidate fun(self: ChatGroups, name: string)
-    ChatGroups = Cache.create(function(name)
+    ChatGroups = Cache.create(function(name, owner)
         return setmetatable({
             members = SyncedTable.create(),
             name = name
@@ -35,12 +38,8 @@ OnInit.module("ChatSystem/Data/ChatGroups", function (require)
         return self.members[profile] ~= nil
     end
 
-    ---@param handler fun(member: ChatProfile)
-    function ChatGroup:forEachMember(handler)
-        for member, _ in pairs(self.members) do
-            handler(member)
-        end
-    end
+    -- duplicate/rename for clearer API
+    ChatGroups.exists = ChatGroups.hasCached
 
     return ChatGroup
 end)

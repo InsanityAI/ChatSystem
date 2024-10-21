@@ -7,6 +7,7 @@ OnInit.module("ChatSystem/Data/ChatProfiles", function (require)
     ---@field icon string
     ChatProfile = {}
     ChatProfile.__index = ChatProfile
+    ChatProfile.__name = "ChatProfile"
 
     ---@class ChatProfiles: Cache
     ---@field get fun(self: ChatProfiles, identifier: player|string): ChatProfile
@@ -20,5 +21,8 @@ OnInit.module("ChatSystem/Data/ChatProfiles", function (require)
             icon = "ReplaceableTextures\\CommandButtons\\BTNPeasant.blp"
         }, ChatProfile)
     end, 1)
+
+    -- duplicate/rename for clearer API
+    ChatProfiles.exists = ChatProfiles.hasCached
 end)
 if Debug then Debug.endFile() end
