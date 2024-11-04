@@ -157,6 +157,14 @@ OnInit.module("ChatSystem/ChatService", function(require)
         TimerQueue:callDelayed(0.00, ChatService.sendMessage, system, message, recepient or groupSys)
     end
 
+    function ChatService.errorMessage(message, recepient)
+        ChatService.systemMessage("|cFFFF0000Error: " .. message .. "|r", recepient)
+    end
+
+    function ChatService.infoMessage(message, recepient)
+        ChatService.systemMessage("|cFF00FFFFInfo: " .. message .. "|r", recepient)
+    end
+
     function ChatService.getSystemProfile()
         return system
     end

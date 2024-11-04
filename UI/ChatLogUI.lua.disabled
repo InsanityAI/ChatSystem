@@ -1,0 +1,219 @@
+if Debug then Debug.beginFile "ChatSystem/UI/ChatLogUI" end
+OnInit.module("ChatSystem/UI/ChatLogUI", function(require)
+    require "StringInterpolation"
+    require "DoublyLinkedList"
+
+    local MAX_MESSAGES = 100
+
+    local groupMessageFormat = "\x25(timestamp)s [\x25(group)s] \x25(contact)s: \x25(message)s"
+    local privateMessageFromFormat = "\x25(timestamp)s [From \x25(contact)s]: \x25(message)s"
+    local privateMessageToFormat = "\x25(timestamp)s [To \x25(contact)s]: \x25(message)s"
+
+    local dialogTitle = nil ---@type framehandle
+    local dialogMessages = nil ---@type framehandle
+    local dialogMessagesScrollBar = nil ---@type framehandle
+
+    ---@class ChatLogUI: ChatServiceUIListener
+    ---@field listView ListView
+    ChatLogUI = {}
+
+
+
+    ---@param node MessageFrameListNode
+    local function deallocateMessageNode(node)
+        assert(node ~= nil, "Cannot deallocate message node nil!")
+        assert(node.value ~= nil, "Cannot deallocate message frame nil!")
+        node.value:setVisibility(false)
+        framesUnused[node.value] = true
+
+        local prevNode = node.prev
+        local nextNode = node.next
+        if nextNode ~= usedFramesList.head then
+            if prevNode == usedFramesList.head then
+                BlzFrameSetPoint(nextNode.value.frame, FRAMEPOINT_TOPLEFT, dialogMessages, FRAMEPOINT_TOPLEFT, 0, 0)
+            else
+                BlzFrameSetPoint(nextNode.value.frame, FRAMEPOINT_TOPLEFT, prevNode.value.frame, FRAMEPOINT_BOTTOMLEFT, 0, 0)
+            end
+        end
+
+        node:remove()
+    end
+
+    ---@param toBottom boolean
+    ---@return MessageFrameListNode
+    local function allocateNewMessageNode(toBottom)
+        local frame = next(framesUnused)
+        assert(frame ~= nil, "No frames available!")
+        framesUnused[frame] = nil
+        frame:setVisibility(true)
+
+        if toBottom then
+            local prevNode = usedFramesList.prev
+            if prevNode == usedFramesList.head then
+                BlzFrameSetPoint(frame.frame, FRAMEPOINT_TOPLEFT, dialogMessages, FRAMEPOINT_TOPLEFT, 0, 0)
+            else
+                BlzFrameSetPoint(frame.frame, FRAMEPOINT_TOPLEFT, prevNode.value.frame, FRAMEPOINT_BOTTOMLEFT, 0, 0)
+            end
+        else
+            local nextNode = usedFramesList.next
+            BlzFrameSetPoint(frame.frame, FRAMEPOINT_TOPLEFT, dialogMessages, FRAMEPOINT_TOPLEFT, 0, 0)
+            if nextNode ~= usedFramesList.head then
+                BlzFrameSetPoint(nextNode.value.frame, FRAMEPOINT_TOPLEFT, frame.frame, FRAMEPOINT_BOTTOMLEFT, 0, 0)
+            end
+        end
+
+        return usedFramesList:insert(frame, toBottom)
+    end
+
+    ---@param message string
+    ---@param toBottom boolean
+    local function showMessage(message, toBottom)
+        if usedFramesList.head.n == maxFrames then
+            deallocateMessageNode(usedFramesList.next)
+        end
+        local messageNode = allocateNewMessageNode(toBottom)
+
+
+        messageNode.value:setContent(message)
+    end
+
+    local messages = LinkedList.create()
+    local messageHeights = setmetatable({}, { __mode = "k" })
+
+    local function getMessageHeight()
+
+    end
+
+    local function showMessage(fromIndex, backwards)
+        --- figure out which message frames don't need update, which do
+
+        if backwards then
+            messagesMaxIndex = fromIndex
+        else
+            messagesMinIndex = fromIndex
+        end
+
+        --- - List of messages may not show constant amount of messages (except for when there are less messages than the list can show at once)
+        --- -- Due to frames being able to expand vertically, that space can be taken over and unused for other messages
+    end
+
+    local function newMessage(message)
+        messages:insert(message, true)
+        if messages.n > MAX_MESSAGES then
+            messages.next:remove()
+        end
+
+        -- move slider up by 1
+        index = index - 1
+        messagesMinIndex, messagesMaxIndex = messagesMinIndex - 1, messagesMaxIndex - 1
+
+        if index == messages.n then
+            sliderValueUpdate(1, true)
+        else -- reflect this value on UI
+            DisableTrigger(sliderTrigger)
+            BlzFrameSetValue(dialogMessagesScrollBar, index)
+            EnableTrigger(sliderTrigger)
+        end
+    end
+
+    do -- ChatService integration
+        local interpTable = {}
+
+        ---@param timestamp string
+        ---@param contact ChatProfile
+        ---@param message string
+        ---@param isForSender boolean
+        function ChatLogUI.newPrivateMessage(timestamp, contact, message, isForSender)
+            interpTable.timestamp = timestamp
+            interpTable.contact = contact.name
+            interpTable.message = message
+            interpTable.group = ""
+            newMessage(interp(isForSender and privateMessageToFormat or privateMessageFromFormat, interpTable))
+        end
+
+        ---@param timestamp string formatted time in represent [minutes: seconds]
+        ---@param from ChatProfile sender of message
+        ---@param message string message text
+        ---@param groupName string formatted text that represent on which channel/group it was sent
+        function ChatLogUI.newMessage(timestamp, from, message, groupName)
+            interpTable.timestamp = timestamp
+            interpTable.contact = from.name
+            interpTable.message = message
+            interpTable.group = groupName
+            newMessage(interp(groupMessageFormat, interpTable))
+        end
+    end
+
+    OnInit.final(function()
+        BlzLoadTOCFile("UI\\ChatLog.toc")
+
+        if bj_isSinglePlayer then
+            local logDialog = GetFrameSafe("LogDialog", 0)
+            dialogTitle = GetFrameSafe("LogTitle", 0)
+            local logAreaBackdrop = GetFrameSafe("LogAreaBackdrop", 0)
+            dialogMessages = GetFrameSafe("LogArea", 0)
+            BlzFrameClearAllPoints(logAreaBackdrop)
+            BlzFrameSetPoint(logAreaBackdrop, FRAMEPOINT_TOPLEFT, dialogMessages, FRAMEPOINT_TOPLEFT, -0.03, 0.03)
+            BlzFrameSetPoint(logAreaBackdrop, FRAMEPOINT_BOTTOMRIGHT, dialogMessages, FRAMEPOINT_BOTTOMRIGHT, 0.03, -0.03)
+            dialogMessagesScrollBar = GetFrameSafe("LogAreaScrollBar", 0)
+            local logOkButton = GetFrameSafe("LogOkButton", 0)
+        else
+            local chatDialog = GetFrameSafe("ChatDialog", 0)
+            dialogTitle = GetFrameSafe("ChatTitle", 0)
+
+            local playerButton = GetFrameSafe("ChatPlayerRadioButton", 0)
+            BlzFrameSetVisible(playerButton, false)
+            BlzFrameSetEnable(playerButton, false)
+
+            local playerLabel = GetFrameSafe("ChatPlayerLabel", 0)
+            BlzFrameSetVisible(playerLabel, false)
+
+            local playerDropList = GetFrameSafe("ChatPlayerMenu", 0)
+            BlzFrameSetVisible(playerDropList, false)
+            BlzFrameSetEnable(playerDropList, false)
+
+            local alliesButton = GetFrameSafe("ChatAlliesRadioButton", 0)
+            BlzFrameSetVisible(alliesButton, false)
+            BlzFrameSetEnable(alliesButton, false)
+
+            local alliesLabel = GetFrameSafe("ChatAlliesLabel", 0)
+            BlzFrameSetVisible(alliesLabel, false)
+
+            local observersButton = GetFrameSafe("ChatObserversRadioButton", 0)
+            BlzFrameSetVisible(observersButton, false)
+            BlzFrameSetEnable(observersButton, false)
+
+            local observersLabel = GetFrameSafe("ChatObserversLabel", 0)
+            BlzFrameSetVisible(observersLabel, false)
+
+            local everyoneButton = GetFrameSafe("ChatEveryoneRadioButton", 0)
+            BlzFrameSetVisible(everyoneButton, false)
+            BlzFrameSetEnable(everyoneButton, false)
+
+            local everyoneLabel = GetFrameSafe("ChatEveryoneLabel", 0)
+            BlzFrameSetVisible(everyoneLabel, false)
+
+            local chatHistoryLabel = GetFrameSafe("ChatHistoryLabel", 0)
+            dialogMessages = GetFrameSafe("ChatHistoryDisplay", 0)
+            BlzFrameSetText(dialogMessages, "")
+
+            local chatHistoryDisplayBackdrop = GetFrameSafe("chatHistoryDisplayBackdrop", 0)
+            BlzFrameClearAllPoints(chatHistoryDisplayBackdrop)
+            BlzFrameSetPoint(chatHistoryDisplayBackdrop, FRAMEPOINT_TOPLEFT, dialogMessages, FRAMEPOINT_TOPLEFT, -0.03, 0.03)
+            BlzFrameSetPoint(chatHistoryDisplayBackdrop, FRAMEPOINT_BOTTOMRIGHT, dialogMessages, FRAMEPOINT_BOTTOMRIGHT, 0.03, -0.03)
+            dialogMessagesScrollBar = GetFrameSafe("ChatHistoryScrollBar", 0)
+
+            local chatInfoText = GetFrameSafe("ChatInfoText", 0)
+            BlzFrameSetVisible(chatInfoText, false)
+
+            local chatAcceptButton = GetFrameSafe("ChatAcceptButton", 0)
+        end
+
+        local context = -1
+        ChatLogUI.listView = ListView.Create(dialogMessages, dialogMessagesScrollBar, MAX_MESSAGES, function()
+            context = context + 1
+            return BlzCreateFrameByType("TEXT", "", dialogMessages, "", context)
+        end)
+    end)
+end)
+if Debug then Debug.endFile() end

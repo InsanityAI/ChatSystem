@@ -5,7 +5,7 @@ OnInit.main("ChatSystem", function(require)
     require "ChatSystem/Data/PlayerSelectedChatGroup"
     require "ChatSystem/ChatService"
     require "ChatSystem/UI/ChatUI"
-    require "ChatSystem/UI/ChatLogUI"
+    --require "ChatSystem/UI/ChatLogUI"
     require "ChatSystem/Extensions/ChatCommands"
     require "ChatSystem/Extensions/ChatMute"
     require "TimerQueue"
@@ -18,7 +18,7 @@ OnInit.main("ChatSystem", function(require)
 
     -- Hook up ChatUI to ChatService to display oncoming messages
     ChatService.registerUIListener(ChatUI)
-    ChatService.registerUIListener(ChatLogUI)
+    --ChatService.registerUIListener(ChatLogUI)
 
     -- Setup a chat profile for system messages
     local system = ChatService.getSystemProfile()

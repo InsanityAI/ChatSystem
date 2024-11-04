@@ -103,6 +103,32 @@ OnInit.module("ChatSystem/API", function(require)
         PlayerSelectedChatGroup.getSelectedRecepientForPlayer(player)
             - player: player
             -> ChatProfile - nil in case group chat is selected, or it was never setup.
+
+    Extensions:
+        ChatCommandBuilder.create(name, func)
+            * Creates a new command builder
+            - name: string
+            - func: fun(chatEvent: ChatEvent, ...: string)
+            -> ChatCommandBuilder
+
+        ChatCommandBuilder:showInHelp()
+            * Sets this command to be shown in help messages
+
+        ChatCommandBuilder:description(description) -- applicable only if showInHelp was called
+            * Sets the command description that gets shown on -help command
+
+        ChatCommandBuilder:argument(name) or ChatCommandArgumentBuilder:argument(name)
+            * Adds an argument to this command
+            - name: string
+            -> ChatCommandArgumentBuilder
+
+        ChatCommandArgumentBuilder:description(description)
+            * Adds a description for this argument
+            - description: string
+            -> ChatCommandArgumentBuilder
+
+        ChatCommandBuilder:register() or ChatCommandArgumentBuilder:register()
+            * Registers the command into the system
 ]]
 
     ---@enum ChatDisplaySetting

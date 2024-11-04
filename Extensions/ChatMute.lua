@@ -86,11 +86,11 @@ OnInit.module("ChatSystem/Extensions/ChatMute", function(require)
 
     ---@param chatEvent ChatEvent
     ---@param profileName string
-    ChatCommands.registerCommand("mute", 1, function(chatEvent, profileName)
+    ChatCommandBuilder.create("mute", function(chatEvent, profileName)
         if ChatProfiles:exists(profileName) then
             local profile = ChatProfiles:get(profileName)
             ChatMute.mute(profile, chatEvent.from)
-            ChatService.systemMessage("|cFF00FFFFInfo: Profile |r" .. profile.name .. "|cFF00FFFF has been muted!", chatEvent.from)
+            ChatService.infoMessage("Profile " .. profile.name .. " has been muted!", chatEvent.from)
         else
             local found = false
             local profile ---@type ChatProfile
@@ -102,21 +102,24 @@ OnInit.module("ChatSystem/Extensions/ChatMute", function(require)
             end
             if found then
                 ChatMute.mute(profile, chatEvent.from)
-                ChatService.systemMessage("|cFF00FFFFInfo: Profile |r" .. profile.name .. "|cFF00FFFF has been muted!", chatEvent.from)
+                ChatService.infoMessage("Profile " .. profile.name .. " has been muted!", chatEvent.from)
             else
-                ChatService.systemMessage("|cFFFF0000Error: Chat profile not found!", chatEvent.from)
+                ChatService.errorMessage("Chat profile not found!", chatEvent.from)
             end
         end
-    end, true, {"profileName - name of the profile you'd like to mute."}, "Mute a profile.")
+    end):showInHelp()
+    :description("Mute a profile.")
+    :argument("profileName"):description("name of the profile you'd like to mute.")
+    :register()
 
     ---@param chatEvent ChatEvent
     ---@param profileName string
-    ChatCommands.registerCommand("unmute", 1, function(chatEvent, profileName)
+    ChatCommandBuilder.create("unmute", function(chatEvent, profileName)
         if ChatProfiles:exists(profileName) then
             local profile = ChatProfiles:get(profileName)
             ChatMute.unmute(profile, chatEvent.from)
-            ChatService.systemMessage("|cFF00FFFFInfo: Profile |r" .. profile.name .. "|cFF00FFFF has been unmuted!", chatEvent.from)
-            ChatService.systemMessage("|cFF00FFFFInfo: |r" .. profile.name .. "|cFF00FFFF has unmuted you!", profile)
+            ChatService.infoMessage("Profile |r" .. profile.name .. " has been unmuted!", chatEvent.from)
+            ChatService.infoMessage(profile.name .. " has unmuted you!", profile)
         else
             local found = false
             local profile ---@type ChatProfile
@@ -128,12 +131,15 @@ OnInit.module("ChatSystem/Extensions/ChatMute", function(require)
             end
             if found then
                 ChatMute.unmute(profile, chatEvent.from)
-                ChatService.systemMessage("|cFF00FFFFInfo: Profile |r" .. profile.name .. "|cFF00FFFF has been unmuted!", chatEvent.from)
-                ChatService.systemMessage("|cFF00FFFFInfo: |r" .. profile.name .. "|cFF00FFFF has unmuted you!", profile)
+                ChatService.infoMessage("Profile |r" .. profile.name .. " has been unmuted!", chatEvent.from)
+                ChatService.infoMessage(profile.name .. " has unmuted you!", profile)
             else
-                ChatService.systemMessage("|cFFFF0000Error: Chat profile not found!", chatEvent.from)
+                ChatService.errorMessage("Chat profile not found!", chatEvent.from)
             end
         end
-    end, true, {"profileName - name of the profile you'd like to unmute."}, "Unmute a profile.")
+    end):showInHelp()
+    :description("Unmute a profile.")
+    :argument("profileName"):description("name of the profile you'd like to unmute.")
+    :register()
 end)
 if Debug then Debug.endFile() end

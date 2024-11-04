@@ -2,6 +2,7 @@ if Debug then Debug.beginFile "ChatSystem/UI/ChatUI" end
 OnInit.global("ChatSystem/UI/ChatUI", function(require)
     require "TimerQueue"
     require "ApplyOverTime"
+    require "ChatSystem/UI/UIUtils"
 
     local localUITimer = TimerQueue.create()
     local localAOT = ApplyOverTime.create(localUITimer)
@@ -12,8 +13,6 @@ OnInit.global("ChatSystem/UI/ChatUI", function(require)
     local CHAT_Y = 0.2106
     local MAX_MESSAGES = 60
 
-    local privateMessageReceiverFormat = "[From \x25s]:"
-    local privateMessageSenderFormat = "[To \x25s]:"
     local groupNameMessageFormat = "[\x25s]"
     local groupMessageFormat = "\x25s|r: \x25s"
 
@@ -36,29 +35,30 @@ OnInit.global("ChatSystem/UI/ChatUI", function(require)
         return -(Cos(bj_PI * t) - 1.) / 2.
     end
 
-    ---@class MessageFrame
+    ---@private
+    ---@class ChatUIMessageFrame
     ---@field frame framehandle
     ---@field frameTimeStamp framehandle
     ---@field frameType framehandle
     ---@field frameIcon framehandle
     ---@field frameIconContainer framehandle
     ---@field frameText framehandle
-    ---@field relativeFrame MessageFrame?
-    MessageFrame = {}
-    MessageFrame.__index = MessageFrame
-    MessageFrame.__name = "MessageFrame"
+    ---@field relativeFrame ChatUIMessageFrame?
+    local ChatUIMessageFrame = {}
+    ChatUIMessageFrame.__index = ChatUIMessageFrame
+    ChatUIMessageFrame.__name = "ChatUIMessageFrame"
 
     ---@param createContext integer
-    ---@return MessageFrame
-    function MessageFrame.create(createContext)
+    ---@return ChatUIMessageFrame
+    function ChatUIMessageFrame.create(createContext)
         local o = setmetatable({
-            frame = BlzCreateSimpleFrame("Message", frameMessagePanel, createContext),
-            frameTimeStamp = BlzGetFrameByName("Message Timestamp", createContext),
-            frameType = BlzGetFrameByName("Message Type", createContext),
-            frameIconContainer = BlzGetFrameByName("Message Icon Container", createContext),
-            frameIcon = BlzGetFrameByName("Message Icon", createContext),
-            frameText = BlzGetFrameByName("Message Text", createContext)
-        }, MessageFrame)
+            frame = BlzCreateSimpleFrame("ChatSystem Message", frameMessagePanel, createContext),
+            frameTimeStamp = BlzGetFrameByName("ChatSystem Message Timestamp", createContext),
+            frameType = BlzGetFrameByName("ChatSystem Message Type", createContext),
+            frameIconContainer = BlzGetFrameByName("ChatSystem Message Icon Container", createContext),
+            frameIcon = BlzGetFrameByName("ChatSystem Message Icon", createContext),
+            frameText = BlzGetFrameByName("ChatSystem Message Text", createContext)
+        }, ChatUIMessageFrame)
         BlzFrameSetAlpha(o.frame, 0)
         return o
     end
@@ -67,7 +67,7 @@ OnInit.global("ChatSystem/UI/ChatUI", function(require)
     ---@param msgType string
     ---@param text string
     ---@param icon string
-    function MessageFrame:setContent(timestamp, msgType, text, icon)
+    function ChatUIMessageFrame:setContent(timestamp, msgType, text, icon)
         BlzFrameSetText(self.frameTimeStamp, timestamp)
         BlzFrameSetText(self.frameType, msgType)
         BlzFrameSetText(self.frameText, text)
@@ -83,38 +83,38 @@ OnInit.global("ChatSystem/UI/ChatUI", function(require)
     end
 
     ---@param show boolean
-    function MessageFrame:setVisibility(show)
+    function ChatUIMessageFrame:setVisibility(show)
         BlzFrameSetVisible(self.frame, show)
         if not show then
             BlzFrameSetAlpha(self.frame, 0)
         end
     end
 
-    local newestFrame, oldestFrame ---@type MessageFrame?, MessageFrame?
-    local framesUnused = {} ---@type table<MessageFrame, boolean>
+    local newestFrame, oldestFrame ---@type ChatUIMessageFrame?, ChatUIMessageFrame?
+    local framesUnused = {} ---@type table<ChatUIMessageFrame, boolean>
 
-    ---@param frame MessageFrame
-    local function deallocateMessageFrame(frame)
+    ---@param frame ChatUIMessageFrame
+    local function deallocateChatUIMessageFrame(frame)
         assert(frame ~= nil, "Cannot deallocate message frame nil!")
-        -- frame:setVisibility(false)
+        frame:setVisibility(false)
         framesUnused[frame] = true
         if newestFrame == frame then
             newestFrame = nil
         end
 
         if oldestFrame == frame then
-            oldestFrame = oldestFrame --[[@as MessageFrame]].relativeFrame -- oldestFrame == frame therefore it cannot be nil
+            oldestFrame = oldestFrame --[[@as ChatUIMessageFrame]].relativeFrame -- oldestFrame == frame therefore it cannot be nil
         end
         frame.relativeFrame = nil
         BlzFrameSetPoint(frame.frame, FRAMEPOINT_BOTTOMLEFT, frameMessagePanel, FRAMEPOINT_BOTTOMLEFT, 0, 0)
     end
 
-    ---@return MessageFrame
-    local function allocateNewMessageFrame()
+    ---@return ChatUIMessageFrame
+    local function allocateNewChatUIMessageFrame()
         local frame = next(framesUnused)
         if not frame then
-            frame = oldestFrame --[[@as MessageFrame]] -- if there's no unused frames, means they're all used, which means oldestFrame exists
-            deallocateMessageFrame(oldestFrame --[[@as MessageFrame]])
+            frame = oldestFrame --[[@as ChatUIMessageFrame]] -- if there's no unused frames, means they're all used, which means oldestFrame exists
+            deallocateChatUIMessageFrame(oldestFrame --[[@as ChatUIMessageFrame]])
         end
         framesUnused[frame] = nil
         frame:setVisibility(true)
@@ -125,16 +125,16 @@ OnInit.global("ChatSystem/UI/ChatUI", function(require)
         return frame
     end
 
-    ---@param newMessageFrame MessageFrame
-    ---@param previousFrame MessageFrame?
-    local function renderNewMessage(newMessageFrame, previousFrame)
+    ---@param newChatUIMessageFrame ChatUIMessageFrame
+    ---@param previousFrame ChatUIMessageFrame?
+    local function renderNewMessage(newChatUIMessageFrame, previousFrame)
         if previousFrame then
-            previousFrame.relativeFrame = newMessageFrame
+            previousFrame.relativeFrame = newChatUIMessageFrame
             BlzFrameClearAllPoints(previousFrame.frame)
             localAOT:Builder()
                 :addStaticParam(previousFrame.frame)
                 :addStaticParam(FRAMEPOINT_BOTTOMLEFT)
-                :addStaticParam(newMessageFrame.frame)
+                :addStaticParam(newChatUIMessageFrame.frame)
                 :addStaticParam(FRAMEPOINT_TOPLEFT)
                 :addStaticParam(0)
                 :addVariable(-BlzFrameGetHeight(previousFrame.frame), 0, false, easeInOutSine)
@@ -142,7 +142,7 @@ OnInit.global("ChatSystem/UI/ChatUI", function(require)
         end
 
         localAOT:Builder()
-            :addStaticParam(newMessageFrame.frame)
+            :addStaticParam(newChatUIMessageFrame.frame)
             :addVariable(0, 255, true)
             :execute(MESSAGE_FADE_DURATION, MESSAGE_RENDER_PERIOD, BlzFrameSetAlpha)
 
@@ -151,9 +151,9 @@ OnInit.global("ChatSystem/UI/ChatUI", function(require)
                 :addStaticParam(frame.frame)
                 :addVariable(255, 0, true)
                 :execute(MESSAGE_FADE_DURATION, MESSAGE_RENDER_PERIOD, BlzFrameSetAlpha)
-        end, newMessageFrame)
+        end, newChatUIMessageFrame)
 
-        localUITimer:callDelayed(MESSAGE_DURATION, deallocateMessageFrame, newMessageFrame)
+        localUITimer:callDelayed(MESSAGE_DURATION, deallocateChatUIMessageFrame, newChatUIMessageFrame)
     end
 
     ---@param timestamp string
@@ -162,10 +162,10 @@ OnInit.global("ChatSystem/UI/ChatUI", function(require)
     ---@param groupName string
     function ChatUI.newMessage(timestamp, from, message, groupName)
         local previousFrame = newestFrame
-        local newMessageFrame = allocateNewMessageFrame()
+        local newChatUIMessageFrame = allocateNewChatUIMessageFrame()
 
-        newMessageFrame:setContent(timestamp, string.format(groupNameMessageFormat, groupName), string.format(groupMessageFormat, from.name, message), from.icon)
-        renderNewMessage(newMessageFrame, previousFrame)
+        newChatUIMessageFrame:setContent(timestamp, string.format(groupNameMessageFormat, groupName), string.format(groupMessageFormat, from.name, message), from.icon)
+        renderNewMessage(newChatUIMessageFrame, previousFrame)
     end
 
     ---@param timestamp string
@@ -174,29 +174,17 @@ OnInit.global("ChatSystem/UI/ChatUI", function(require)
     ---@param isForSender boolean
     function ChatUI.newPrivateMessage(timestamp, contact, message, isForSender)
         local previousFrame = newestFrame
-        local newMessageFrame = allocateNewMessageFrame()
-        local pmFormat
+        local newChatUIMessageFrame = allocateNewChatUIMessageFrame()
+        local msgType
 
         if isForSender then
-            pmFormat = privateMessageSenderFormat
+            msgType = "[To "
         else
-            pmFormat = privateMessageReceiverFormat
+            msgType = "[From "
         end
 
-        newMessageFrame:setContent(timestamp, string.format(pmFormat, contact.name), message, contact.icon)
-        renderNewMessage(newMessageFrame, previousFrame)
-    end
-
-    ---@param name string
-    ---@param pos integer
-    ---@return framehandle
-    local function safe_get_frame(name, pos)
-        local frame = BlzGetFrameByName(name, pos)
-        if frame == nil then
-            Location(0, 0) --Intentionally leak a handle because someone does not have this frame
-            --This should help prevent desyncs and replay errors
-        end
-        return frame --[[@as framehandle]]
+        newChatUIMessageFrame:setContent(timestamp, msgType, contact.name .. "]: " .. message, contact.icon)
+        renderNewMessage(newChatUIMessageFrame, previousFrame)
     end
 
     function ChatUI.refreshChat()
@@ -210,11 +198,14 @@ OnInit.global("ChatSystem/UI/ChatUI", function(require)
         BlzLoadTOCFile("UI\\ChatSystem.toc")
         originalChat = BlzGetOriginFrame(ORIGIN_FRAME_CHAT_MSG, 0)
 
-        frameMain = BlzCreateSimpleFrame("Main", BlzGetOriginFrame(ORIGIN_FRAME_GAME_UI, 0), 0)
-        frameMessagePanel = safe_get_frame("Message Panel", 0)
+        frameMain = BlzCreateFrameByType("SIMPLEFRAME", "ChatSystemMain", BlzGetOriginFrame(ORIGIN_FRAME_GAME_UI, 0), "", 0)
+        BlzFrameSetSize(frameMain, 0.8, 0.6)
+
+        frameMessagePanel = BlzCreateFrameByType("SIMPLEFRAME", "ChatSystemMsgPanel", frameMain, "", 0)
+        BlzFrameSetSize(frameMessagePanel, 0.8, 0.013)
 
         for i = 1, MAX_MESSAGES do
-            deallocateMessageFrame(MessageFrame.create(i))
+            deallocateChatUIMessageFrame(ChatUIMessageFrame.create(i))
         end
 
         ChatUI.refreshChat()
