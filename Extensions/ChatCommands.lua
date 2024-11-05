@@ -152,23 +152,26 @@ OnInit.module("ChatSystem/Extensions/ChatCommands", function(require)
                     argsString = argsString .. cmdBuilder.arguments[i].name .. " "
                 end
                 help[1] = COMMAND_PREFIX .. cmdBuilder.name .. " " .. argsString .. cmdBuilder.arguments[length].name
+            else
+                help[1] = COMMAND_PREFIX .. cmdBuilder.name .. " "
+            end
 
-                if cmdBuilder.desc then
-                    help[1] = help[1] .. "    - " .. cmdBuilder.desc
+            if cmdBuilder.desc then
+                help[1] = help[1] .. "    - " .. cmdBuilder.desc
+            end
+
+            for i = 1, length do
+                if cmdBuilder.arguments[i].desc then
+                    help[i + 1] = "      -> " .. cmdBuilder.arguments[i].name .. " - " .. cmdBuilder.arguments[i].desc
                 end
 
-                for i = 1, length do
-                    if cmdBuilder.arguments[i].desc then
-                        help[i + 1] = "      -> " .. cmdBuilder.arguments[i].name .. " - " .. cmdBuilder.arguments[i].desc
-                    end
-
-                    if cmdBuilder.arguments[i].defaultVal == nil then
-                        mandatoryArgC = mandatoryArgC + 1
-                    else
-                        table.insert(defaultValues, cmdBuilder.arguments[i].defaultVal)
-                    end
+                if cmdBuilder.arguments[i].defaultVal == nil then
+                    mandatoryArgC = mandatoryArgC + 1
+                else
+                    table.insert(defaultValues, cmdBuilder.arguments[i].defaultVal)
                 end
             end
+
 
             commands[cmdBuilder.name] = {
                 name = cmdBuilder.name,
